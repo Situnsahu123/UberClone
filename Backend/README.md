@@ -8,18 +8,21 @@ Backend/
 ├── db/
 │   └── db.js           # Database connection
 ├── models/
-│   └── user.model.js   # User schema and methods
+│   ├── user.model.js   # User schema and methods
+│   └── blacklistToken.model.js # Token blacklist for logout
 ├── services/
 │   └── user.service.js # Business logic
 ├── controllers/
 │   └── user.controller.js # Request handlers
+├── middleware/
+│   └── auth.middleware.js # Authentication middleware
 └── routes/
     └── user.routes.js  # API routes
 ```
 
 ## API Documentation
 
-### Register User
+### 1. Register User
 `POST /users/register`
 
 Creates a new user account with the provided information.
@@ -33,18 +36,6 @@ Creates a new user account with the provided information.
   },
   "email": "string",      // Required, unique email
   "password": "string"    // Required, min 6 chars
-}
-```
-
-#### Example Request
-```json
-{
-  "fullname": {
-    "firstname": "John",
-    "lastname": "Doe"
-  },
-  "email": "john.doe@example.com",
-  "password": "secure123"
 }
 ```
 
@@ -62,59 +53,131 @@ Creates a new user account with the provided information.
 }
 ```
 
-#### Error Responses
+### 2. Login User
+`POST /users/login`
 
-1. **Validation Error**  
-   **Status Code:** `400 Bad Request`
-   ```json
-   {
-     "errors": [
-       {
-         "msg": "invalid email format",
-         "param": "email",
-         "location": "body"
-       }
-     ]
-   }
-   ```
+Authenticates a user and returns a token.
 
-2. **Missing Fields**  
-   **Status Code:** `400 Bad Request`
-   ```json
-   {
-     "errors": [
-       {
-         "msg": "All fields are required"
-       }
-     ]
-   }
-   ```
+#### Request Body
+```json
+{
+  "email": "string",    // Required
+  "password": "string"  // Required
+}
+```
+
+#### Success Response
+**Status Code:** `200 OK`
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "_id": "507f1f77bcf86cd799439011",
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com"
+  }
+}
+```
+
+### 3. Get User Profile
+`GET /users/profile`
+
+Returns the profile of the authenticated user.
+
+#### Headers
+```
+Authorization: Bearer <token>
+```
+
+#### Success Response
+**Status Code:** `200 OK`
+```json
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com"
+}
+```
+
+### 4. Logout User
+`GET /users/logout`
+
+Logs out the user and invalidates the token.
+
+#### Headers
+```
+Authorization: Bearer <token>
+```
+
+#### Success Response
+**Status Code:** `200 OK`
+```json
+{
+  "message": "Logged out"
+}
+```
+
+## Error Responses
+
+### Validation Error
+**Status Code:** `400 Bad Request`
+```json
+{
+  "errors": [
+    {
+      "msg": "invalid email format",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+### Authentication Error
+**Status Code:** `401 Unauthorized`
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+### Invalid Credentials
+**Status Code:** `401 Unauthorized`
+```json
+{
+  "message": "invalid email and password"
+}
+```
 
 ## Implementation Details
 
-### User Schema
+### Models
+
+#### User Schema
 ```javascript
 {
   firstname: {
     type: String,
     required: true,
-    minlength: 3
+    minlength: [3, 'name should be at least 3 characters']
   },
   lastname: {
     type: String,
-    minlength: 3
+    minlength: [3, 'name should be at least 3 characters']
   },
   email: {
     type: String,
     required: true,
     unique: true,
-    minlength: 5
+    minlength: [5, 'email should be at least 5 characters']
   },
   password: {
     type: String,
     required: true,
     select: false,
-    minlength: 8
+    minlength: [8, 'password should be at least 8 characters']
   },
   socketid: {
     type: String
@@ -122,22 +185,30 @@ Creates a new user account with the provided information.
 }
 ```
 
-### Validation Rules
-- **firstname**: Required, minimum 3 characters
-- **lastname**: Optional, minimum 3 characters if provided
-- **email**: Required, must be valid email format and unique
-- **password**: Required, minimum 6 characters
+#### BlacklistToken Schema
+```javascript
+{
+  token: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 86400 // 24 hours in seconds
+  }
+}
+```
 
 ### Security Features
 - Passwords are hashed using bcrypt before storage
-- JWT tokens generated for authentication
-- Password field excluded from query results
-- Email uniqueness enforced at database level
-
-### Database Connection
-- MongoDB connection using Mongoose
-- Connection status logged to console
-- Environment variables used for connection string
+- JWT tokens with 24-hour expiration
+- Token blacklisting for logout
+- Password field excluded from queries
+- Email uniqueness enforced
+- CORS enabled
+- Request body validation
 
 ## Running the Server
 
