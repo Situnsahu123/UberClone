@@ -226,4 +226,163 @@ Server will run at `http://localhost:3000`
 
 ### Server Output
 - Success: `✅ Connected to MongoDB`
-- Error: `❌ MongoDB connection error: [error details]`
+- Error: `❌ MongoDB connection error: [error details]`### 5. Register Captain
+`POST /captains/register`
+
+Register a new captain with vehicle information.
+
+#### Request Body
+```json
+{
+  "fullname": {
+    "firstname": "string",    // Required, min 3 chars
+    "lastname": "string"      // Optional, min 3 chars
+  },
+  "email": "string",         // Required, unique email
+  "password": "string",      // Required, min 8 chars
+  "vehicle": {
+    "color": "string",       // Required, min 3 chars
+    "plate": "string",       // Required, min 3 chars
+    "capacity": "number",    // Required, min 1
+    "vehicleType": "string"  // Required, enum: "car", "motorcycle", "auto"
+  }
+}
+```
+
+#### Example Request
+```json
+{
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "john.captain@example.com",
+  "password": "secure123",
+  "vehicle": {
+    "color": "Black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  }
+}
+```
+
+#### Success Response
+**Status Code:** `201 Created`
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "captain": {
+    "_id": "507f1f77bcf86cd799439011",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "john.captain@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "Black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    }
+  }
+}
+```
+
+#### Error Responses
+
+1. **Validation Error**
+**Status Code:** `400 Bad Request`
+```json
+{
+  "errors": [
+    {
+      "msg": "invalid email format",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+2. **Captain Already Exists**
+**Status Code:** `400 Bad Request`
+```json
+{
+  "message": "captain already exists"
+}
+```
+
+### Captain Schema
+```javascript
+{
+  fullname: {
+    firstname: {
+      type: String,
+      required: true,
+      minlength: [3, "name should be at least 3 characters"]
+    },
+    lastname: {
+      type: String,
+      minlength: [3, "name should be at least 3 characters"]
+    }
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Please fill a valid email address"],
+    minlength: [5, "email should be at least 5 characters"]
+  },
+  password: {
+    type: String,
+    required: true,
+    select: false,
+    minlength: [8, "password should be at least 8 characters"]
+  },
+  socketid: String,
+  status: {
+    type: String,
+    enum: ["active", "inactive"],
+    default: "inactive"
+  },
+  vehicle: {
+    color: {
+      type: String,
+      required: true,
+      minlength: [3, "color should be at least 3 characters"]
+    },
+    plate: {
+      type: String,
+      required: true,
+      minlength: [3, "plate should be at least 3 characters"]
+    },
+    capacity: {
+      type: Number,
+      required: true,
+      minlength: [1, "capacity should be at least 1 character"]
+    },
+    vehicleType: {
+      type: String,
+      required: true,
+      enum: ["car", "motorcycle", "auto"]
+    },
+    location: {
+      lat: Number,
+      lng: Number
+    }
+  }
+}
+```
+
+#### Validation Rules
+- **firstname**: Required, minimum 3 characters
+- **lastname**: Optional, minimum 3 characters if provided
+- **email**: Required, valid email format, unique, lowercase
+- **password**: Required, minimum 8 characters
+- **vehicle.color**: Required, minimum 3 characters
+- **vehicle.plate**: Required, minimum 3 characters
+- **vehicle.capacity**: Required, minimum value of 1
+- **vehicle.vehicleType**: Required, must be one of: "car", "motorcycle", "auto"
