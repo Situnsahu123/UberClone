@@ -1,6 +1,8 @@
 import React from "react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link , useNavigate } from "react-router-dom";
+import axios from 'axios';
+import { UserDataContext} from "../context/UserContext.jsx";
 
 function UserSingnup() {
   const [email, setEmail] = useState("");
@@ -9,16 +11,34 @@ function UserSingnup() {
   const [lastName, setLastName] = useState("");
   const [userData, setuserData] = useState({});
 
-  const submitHandler = (e) => {
+
+  const navigate = useNavigate();
+
+  const {user ,setUser} = React.useContext(UserDataContext);
+
+  const submitHandler = async (e) => {
     e.preventDefault();
-    setuserData({
-      fullName: {
-        firstName: firstName,
-        lastName: lastName,
+    const newUser = {
+      fullname: {
+        firstname: firstName,
+        lastname: lastName,
       },
       email: email,
       password: password,
-    });
+    };
+
+ const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/register`,newUser)
+
+ if(response.status === 201){
+  const data = response.data;
+
+  setUser(data.user)
+    localStorage.setItem("token", data.token);
+
+  navigate("/home");
+
+ }
+
     console.log(userData);
     setEmail("");
     setPassword("");
@@ -81,7 +101,7 @@ function UserSingnup() {
             placeholder="password"
           />
           <button className="bg-[#111] text-white font-semibold mb-5 rounded px-4 py-2 border w-full text-lg mt-6">
-            Login
+            Create Accout
           </button>
           <p className="text-center">
             Already have an account?{" "}

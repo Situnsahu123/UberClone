@@ -22,6 +22,7 @@ module.exports.registerCaptain = async (req, res, next) => {
     lastname: fullname.lastname,
     email,
     password: hashedPassword,
+
     color: vehicle.color,
     plate: vehicle.plate,
     capacity: vehicle.capacity,
@@ -40,7 +41,7 @@ module.exports.loginCaptain = async (req, res, next) => {
 
   const { email, password } = req.body;
   const captain = await captainModel.findOne({ email }).select("+password");
-  
+
   if (!captain) {
     return res.status(401).json({ message: "invalid email and password" });
   }
@@ -48,7 +49,7 @@ module.exports.loginCaptain = async (req, res, next) => {
   const isMatch = await captain.comparePassword(password);
 
   if (!isMatch) {
-    return res.status(404).json({ message: "invalid email and password" });
+    return res.status(401).json({ message: "invalid email and password" });
   }
 
   const token = captain.generateAuthToken();
@@ -66,3 +67,4 @@ module.exports.logoutCaptain = async (req, res, next) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logout successful" });
 };
+
